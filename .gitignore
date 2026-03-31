@@ -1,0 +1,17 @@
+# node
+node_modules/
+npm-debug.log*
+
+# env
+.env
+
+# vue
+dist/
+
+# logs
+logs/
+*.log
+
+# system
+.DS_Store
+Thumbs.db
