@@ -12,12 +12,12 @@
         v-model="jsonText"
         class="json-input"
         placeholder='示例：
-{
-  "content": "检测到疑似 SQL 注入攻击",
-  "attack_type": "sql_injection",
-  "severity": "high",
-  "source_ip": "192.168.1.10"
-}'
+        {
+          "content": "检测到疑似 SQL 注入攻击",
+          "attack_type": "sql_injection",
+          "severity": "high",
+          "source_ip": "192.168.1.10"
+        }'
       ></textarea>
 
       <div class="btn-group">
@@ -51,8 +51,9 @@
 
 <script setup>
 import { ref, computed } from "vue";
-import { ethers } from "ethers";
 import calculateHash from "@/utils/hash";
+import { submitToChain } from "@/BlockContact/submitToChain";
+import { postDataToCenter } from "@/api/postToCenter";
 
 const resultMsg = ref("");
 const resultData = ref("");
@@ -98,47 +99,46 @@ async function handleSubmit() {
   submitting.value = true;
 
   try {
+    if (!jsonText.value.trim()) {
+      throw new Error("请输入 JSON 数据");
+    }
+
     const data = JSON.parse(jsonText.value);
 
-    const hash = await calculateHash({
-      content: data.content,
-      attack_type: data.attack_type,
-      severity: data.severity,
-      source_ip: data.source_ip
-    });
-
-    console.log("前端 hash =", hash);
-
-    const receipt = await submitToChain(hash);
-
-    const payload = {
+    const normalizedData = {
       content: data.content || "",
       attack_type: data.attack_type || "",
       severity: data.severity || "",
-      source_ip: data.source_ip || "",
-      hash: hash,
-      sender: receipt.from,
-      tx_hash: receipt.hash
+      source_ip: data.source_ip || ""
     };
 
-    const res = await fetch("http://localhost:3000/saveIntel", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
-    });
+    const hash = await calculateHash(normalizedData);
+    console.log("前端 hash =", hash);
 
-    const result = await res.json();
+    const chainResult = await submitToChain(hash);
+    console.log("链上结果 =", chainResult);
 
-    if (!res.ok) {
-      throw new Error(result.error || result.message || "提交失败");
-    }
+    const payload = {
+      ...normalizedData,
+      hash,
+      sender: chainResult.sender,
+      tx_hash: chainResult.txHash
+    };
 
-    resultMsg.value = result.message || "提交成功";
-    resultData.value = payload;
+    const centerRes = await postDataToCenter(payload);
+    console.log("后端返回 =", centerRes);
+
+    resultMsg.value = "提交成功：已完成上链并写入中心数据库";
+    resultData.value = {
+      hash,
+      sender: chainResult.sender,
+      tx_hash: chainResult.txHash,
+      receipt: chainResult.receipt,
+      centerRes
+    };
     submitStatus.value = "success";
   } catch (err) {
+    console.error(err);
     resultMsg.value = `提交失败：${err.message || err}`;
     resultData.value = "";
     submitStatus.value = "error";
@@ -147,28 +147,7 @@ async function handleSubmit() {
   }
 }
 
-async function submitToChain(hash) {
-  if (!window.ethereum) {
-    throw new Error("请先安装 MetaMask");
-  }
 
-  const provider = new ethers.BrowserProvider(window.ethereum);
-  const signer = await provider.getSigner();
-
-  const contractAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
-  const abi = [
-    "function submitIntel(string memory _hash) public"
-  ];
-
-  const contract = new ethers.Contract(contractAddress, abi, signer);
-  const tx = await contract.submitIntel(hash);
-  console.log("交易发送:", tx);
-
-  const receipt = await tx.wait();
-  console.log("交易确认:", receipt);
-
-  return receipt;
-}
 </script>
 
 <style scoped>

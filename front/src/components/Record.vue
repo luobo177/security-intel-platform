@@ -5,7 +5,7 @@
     <div class="toolbar-grid">
       <div class="card">
         <h2>查询全部数据</h2>
-        <button @click="getAllData" :disabled="loading">查询全部</button>
+        <button @click="handleGetAll" :disabled="loading">查询全部</button>
       </div>
 
       <div class="card">
@@ -16,7 +16,7 @@
           placeholder="请输入 hash"
         />
         <div class="btn-group">
-          <button @click="getByHash" :disabled="loading">按 hash 查询</button>
+          <button @click="handleGetByHash" :disabled="loading">按 hash 查询</button>
         </div>
       </div>
 
@@ -28,7 +28,7 @@
           placeholder="请输入 tx_hash"
         />
         <div class="btn-group">
-          <button @click="getByTxHash" :disabled="loading">按 tx_hash 查询</button>
+          <button @click="handleGetByTxHash" :disabled="loading">按 tx_hash 查询</button>
         </div>
       </div>
 
@@ -115,8 +115,7 @@
 
 <script setup>
 import { ref } from "vue";
-
-const API_BASE = "http://localhost:3000";
+import { getAllData, getByHash, getByTxHash } from "@/api/getFromCenter";
 
 const hashValue = ref("");
 const txHashValue = ref("");
@@ -133,19 +132,14 @@ function clearResult() {
   txHashValue.value = "";
 }
 
-async function getAllData() {
+async function handleGetAll() {
   loading.value = true;
   resultMsg.value = "正在查询全部数据...";
   rawResult.value = "";
   resultData.value = [];
 
   try {
-    const res = await fetch(`${API_BASE}/getAllData`);
-    const data = await res.json();
-
-    if (!res.ok) {
-      throw new Error(data.error || data.message || "查询失败");
-    }
+    const data = await getAllData();
 
     resultMsg.value = data.message || "查询成功";
     rawResult.value = JSON.stringify(data, null, 2);
@@ -164,7 +158,7 @@ async function getAllData() {
   }
 }
 
-async function getByHash() {
+async function handleGetByHash() {
   if (!hashValue.value.trim()) {
     resultMsg.value = "请先输入 hash";
     return;
@@ -176,14 +170,7 @@ async function getByHash() {
   resultData.value = [];
 
   try {
-    const res = await fetch(
-      `${API_BASE}/getByHash?hash=${encodeURIComponent(hashValue.value.trim())}`
-    );
-    const data = await res.json();
-
-    if (!res.ok) {
-      throw new Error(data.error || data.message || "查询失败");
-    }
+    const data = await getByHash(hashValue.value);
 
     resultMsg.value = data.message || "查询成功";
     rawResult.value = JSON.stringify(data, null, 2);
@@ -206,7 +193,7 @@ async function getByHash() {
   }
 }
 
-async function getByTxHash() {
+async function handleGetByTxHash() {
   if (!txHashValue.value.trim()) {
     resultMsg.value = "请先输入 tx_hash";
     return;
@@ -218,14 +205,7 @@ async function getByTxHash() {
   resultData.value = [];
 
   try {
-    const res = await fetch(
-      `${API_BASE}/getByTxHash?tx_hash=${encodeURIComponent(txHashValue.value.trim())}`
-    );
-    const data = await res.json();
-
-    if (!res.ok) {
-      throw new Error(data.error || data.message || "查询失败");
-    }
+    const data = await getByTxHash(txHashValue.value);
 
     resultMsg.value = data.message || "查询成功";
     rawResult.value = JSON.stringify(data, null, 2);

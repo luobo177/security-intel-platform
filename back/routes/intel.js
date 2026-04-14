@@ -10,31 +10,6 @@ const {
 const verifyIntel = require("../service/verifyrecord");
 const verifyrecord = require("../service/verifyrecord");
 
-
-router.get("/", (req, res) => {
-  res.send("server is running");
-});
-
-router.post("/compareIntel", async (req, res) => {
-  try {
-    const { content, hash } = req.body;
-
-    if (!content || !hash) {
-      return res.status(400).json({ error: "参数不完整" });
-    }
-
-    const result = await compareIntelWithDatabase(content, hash);
-
-    return res.json({
-      message: "ok",
-      data: result
-    });
-  } catch (err) {
-    console.error("compareIntel error:", err);
-    return res.status(500).json({ error: "比对失败" });
-  }
-});
-
 // 保存数据：先比对，再决定是否上链+入库
 router.post("/saveIntel", async (req, res) => {
   const {

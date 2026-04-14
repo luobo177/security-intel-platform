@@ -114,13 +114,15 @@
 
 <script setup>
 import { ref, computed, onMounted } from "vue"
+import { shortMiddle, formatTime } from "@/utils/format"
+import config from "@/config/config"
 
-const API_BASE = "http://localhost:3000"
-const contractAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3"
 const networkName = "Hardhat Local"
+const contractAddress = config.contractAddress
 
 const records = ref([])
-
+const loading = ref(false)
+const errorMsg = ref("")
 const totalRecords = computed(() => records.value.length)
 
 const sortedRecords = computed(() => {
@@ -142,41 +144,33 @@ onMounted(() => {
   fetchAllData()
 })
 
-async function fetchAllData() {
-  try {
-    const res = await fetch(`${API_BASE}/getAllData`)
-    const result = await res.json()
+async function getAllData() {
+  const res = await fetch(`${config.baseUrl}/getAllData`)
+  const result = await res.json()
 
-    if (result && Array.isArray(result.data)) {
-      records.value = result.data
-    } else {
-      records.value = []
-      console.error("接口返回格式不对:", result)
-    }
-  } catch (error) {
-    console.error("获取数据失败:", error)
-    records.value = []
+  if (!res.ok) {
+    throw new Error(result.error || result.message || "获取数据失败")
   }
+
+  // 适配你的后端返回格式
+  return Array.isArray(result.data) ? result.data : []
 }
 
-function shortMiddle(str, left = 8, right = 6) {
-  if (!str) return "-"
-  if (str.length <= left + right) return str
-  return `${str.slice(0, left)}...${str.slice(-right)}`
-}
+async function fetchAllData() {
+  loading.value = true
+  errorMsg.value = ""
 
-function formatTime(timeStr) {
-  if (!timeStr) return "-"
-  const date = new Date(timeStr)
-  if (Number.isNaN(date.getTime())) return timeStr
-
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, "0")
-  const day = String(date.getDate()).padStart(2, "0")
-  const hour = String(date.getHours()).padStart(2, "0")
-  const minute = String(date.getMinutes()).padStart(2, "0")
-
-  return `${year}-${month}-${day} ${hour}:${minute}`
+  try {
+    const data = await getAllData()
+    records.value = data
+    console.log("dashboard records:", data)
+  } catch (err) {
+    errorMsg.value = err.message
+    records.value = []
+    console.error("Dashboard 获取数据失败:", err)
+  } finally {
+    loading.value = false
+  }
 }
 
 function getStatusText(block) {
