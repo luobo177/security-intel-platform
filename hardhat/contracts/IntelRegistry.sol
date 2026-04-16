@@ -17,6 +17,10 @@ contract IntelRegistry {
         require(msg.sender == owner,"not owner");
         _;
     }
+    modifier onlyAdmin(){
+        require(roles[msg.sender]==1,"not admin");
+        _;
+    }
 
     mapping(string => Intel) public intels;
     mapping(address => uint256)public banTime;
@@ -24,17 +28,17 @@ contract IntelRegistry {
 
 
 //角色权限设置，0为未注册，1为管理员，2为普通成员
-    function setRole(address user,uint8 role)public onlyOwner{
+    function setRole(address user,uint8 role)public onlyAdmin {
         require(user!=address(0),"invalid address");
         roles[user]=role;
     }
 
-    function banUser(address user)public onlyOwner {
+    function banUser(address user)public onlyAdmin() {
         require(user != address(0), "invalid address");
         require(user!=owner,"cannot ban owner");
         banTime[user] = block.timestamp;
     }
-    function unbanUser(address user) public onlyOwner{
+    function unbanUser(address user) public onlyAdmin{
         require(user != address(0), "invalid address");
         require(banTime[user]!=0,"user not banned");
         banTime[user]=0;

@@ -7,6 +7,7 @@
       <div class="menu" @click="currentPage = 'submit'">情报提交</div>
       <div class="menu" @click="currentPage = 'records'">数据查询</div>
       <div class="menu" v-if="isAdmin" @click="currentPage = 'management'" >管理</div>
+      <!-- <div class="menu" @click="currentPage = 'management'" >管理</div> -->
 
       <!--连接钱包按钮-->
       <div class="wallet-box">
